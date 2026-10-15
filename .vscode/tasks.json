@@ -1,0 +1,97 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Frontend: production build",
+			"type": "shell",
+			"command": "npm",
+			"windows": {
+				"command": "npm.cmd"
+			},
+			"args": [
+				"run",
+				"build"
+			],
+			"options": {
+				"cwd": "${workspaceFolder}/frontend"
+			},
+			"problemMatcher": [
+				"$tsc"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			}
+		},
+		{
+			"label": "Frontend: unit tests",
+			"type": "shell",
+			"command": "npm",
+			"windows": {
+				"command": "npm.cmd"
+			},
+			"args": [
+				"run",
+				"test"
+			],
+			"options": {
+				"cwd": "${workspaceFolder}/frontend"
+			},
+			"problemMatcher": [],
+			"group": "test"
+		},
+		{
+			"label": "Frontend: lint",
+			"type": "shell",
+			"command": "npm",
+			"windows": {
+				"command": "npm.cmd"
+			},
+			"args": [
+				"run",
+				"lint"
+			],
+			"options": {
+				"cwd": "${workspaceFolder}/frontend"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Frontend: dev server",
+			"type": "shell",
+			"command": "npm",
+			"windows": {
+				"command": "npm.cmd"
+			},
+			"args": [
+				"run",
+				"dev"
+			],
+			"options": {
+				"cwd": "${workspaceFolder}/frontend"
+			},
+			"isBackground": true,
+			"problemMatcher": []
+		},
+		{
+			"label": "Frontend: install dependencies",
+			"type": "shell",
+			"command": "npm",
+			"windows": { "command": "npm.cmd" },
+			"args": ["install"],
+			"options": { "cwd": "${workspaceFolder}/frontend" },
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Frontend: format source",
+			"type": "shell",
+			"command": "npm",
+			"windows": { "command": "npm.cmd" },
+			"args": ["run", "format"],
+			"options": { "cwd": "${workspaceFolder}/frontend" },
+			"isBackground": false,
+			"problemMatcher": []
+		}
+	]
+}
