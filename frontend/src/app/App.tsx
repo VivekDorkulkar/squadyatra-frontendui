@@ -4,7 +4,13 @@ import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-route
 import { AppLayout } from '../components/AppLayout'
 import { EmptyState } from '../components/ui'
 import { AuthProvider, useAuth } from '../features/auth/AuthProvider'
-import { LoginPage, ProfilePage } from '../features/auth/AccountPages'
+import {
+  ForgotPasswordPage,
+  LoginPage,
+  ProfilePage,
+  ResetPasswordPage,
+  SignupPage,
+} from '../features/auth/AccountPages'
 import { ExplorePage } from '../features/catalog/ExplorePage'
 import { TripDetailsPage } from '../features/catalog/TripDetailsPage'
 import { SquadsPage, InvitationsPage } from '../features/squads/SquadsPage'
@@ -12,7 +18,6 @@ import { BookingsPage } from '../features/bookings/BookingsPage'
 import { ManagementPage } from '../features/management/ManagementPage'
 import { WorkspaceProvider } from '../features/workspace/WorkspaceProvider'
 import type { Role } from '../domain/models'
-import { config } from '../lib/config'
 
 const client = new QueryClient({
   defaultOptions: {
@@ -52,7 +57,7 @@ function Guard({ children, role }: { children: ReactNode; role?: Role }) {
         Checking your session...
       </div>
     )
-  if (!identity && !config.demo)
+  if (!identity)
     return <Navigate to="/login" state={{ from: location.pathname }} replace />
   if (role && identity?.role !== role)
     return (
@@ -74,6 +79,9 @@ export function App() {
             </a>
             <Routes>
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/signup" element={<SignupPage />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route
                 element={
                   <Guard>

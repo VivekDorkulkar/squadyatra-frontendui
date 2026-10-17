@@ -1801,6 +1801,45 @@ td small {
 .login-form .eyebrow {
   margin-bottom: 0;
 }
+.auth-google {
+  width: 100%;
+  justify-content: center;
+}
+.auth-forgot {
+  align-self: flex-end;
+  color: var(--green-dark);
+  font-size: 12px;
+  font-weight: 700;
+  margin-top: -8px;
+}
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+.auth-notice {
+  color: var(--green-dark);
+  background: var(--mint);
+  padding: 12px;
+  border-radius: 5px;
+  font-size: 12px;
+}
+.auth-switch {
+  text-align: center;
+}
+.auth-switch a {
+  color: var(--green-dark);
+  font-weight: 700;
+}
 .form-error {
   color: #ab5237;
   background: #fff1e9;

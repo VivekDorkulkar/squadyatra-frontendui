@@ -1,8 +1,17 @@
 import { createContext, useContext, useState, type ReactNode } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { CheckCircle2, X } from 'lucide-react'
+import { CheckCircle2, RefreshCw, X } from 'lucide-react'
 import type { Workspace } from '../../domain/models'
 import { repository } from './repository'
+
+const emptyWorkspace: Workspace = {
+  trips: [],
+  squads: [],
+  invitations: [],
+  bookings: [],
+  saved: [],
+  discovery: [],
+}
 
 interface WorkspaceContextValue {
   data: Workspace
@@ -19,6 +28,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   })
   const mutation = useMutation({ mutationFn: (action: () => Promise<unknown>) => action() })
   const [notice, setNotice] = useState<{ message: string; error: boolean } | null>(null)
+  const data = query.data ?? emptyWorkspace
   const run = async (action: () => Promise<unknown>, message: string) => {
     try {
       await mutation.mutateAsync(action)
@@ -40,19 +50,21 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         Finding your next adventure...
       </div>
     )
-  if (query.isError)
-    return (
-      <div className="page-state">
-        <h2>We couldn't load your trips</h2>
-        <p>{query.error.message}</p>
-        <button className="button primary" onClick={() => query.refetch()}>
-          Try again
-        </button>
-      </div>
-    )
   return (
-    <WorkspaceContext.Provider value={{ data: query.data, run, pending: mutation.isPending }}>
+    <WorkspaceContext.Provider value={{ data, run, pending: mutation.isPending }}>
       {children}
+      {query.isError && (
+        <div className="toast error" role="status">
+          <span>Could not load live workspace data. Showing empty results.</span>
+          <button
+            className="icon-button"
+            aria-label="Retry loading workspace data"
+            onClick={() => void query.refetch()}
+          >
+            <RefreshCw size={17} />
+          </button>
+        </div>
+      )}
       {notice && (
         <div
           className={`toast ${notice.error ? 'error' : ''}`}

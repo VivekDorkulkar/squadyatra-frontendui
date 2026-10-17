@@ -55,16 +55,17 @@ frontend/
 		styles.css            Responsive tokens, layouts, and components
 ```
 
-Request flow: **screen -> React Query -> repository -> gateway -> owning service**. Login goes directly to Supabase Auth, not the gateway. UI components do not call Supabase database tables. The backend remains authoritative for roles, ownership, eligibility, seat inventory, qualifying confirmations, and price acceptance.
+Request flow: **screen -> React Query -> repository -> gateway -> owning service**. Login goes directly to Supabase Auth, not the gateway. The browser client persists the Supabase session in chunked cookies and API requests send the access token as a bearer token. These browser-set cookies are JavaScript-readable, not `HttpOnly`; HttpOnly session cookies require a server-side auth layer. UI components do not call Supabase database tables. The backend remains authoritative for roles, ownership, eligibility, seat inventory, qualifying confirmations, and price acceptance.
 
 ## Demo and Live Integration
 
-Default mode is `demo`: sample trips, a sample traveler, one joined squad, and one incoming invitation. Actions persist in the browser under `squadyatra.workspace.v1`; clearing that key resets the demo. The sidebar's **Demo view** selector switches consumer, agency, and admin previews. It is not a real authorization mechanism and is absent in live mode. Demo category attestation is not identity or age verification. Sample discoverable squads are illustrative, not evidence of an eligible match. No real payment is taken.
+Default mode is `demo`: sample trips, a sample traveler, one joined squad, and one incoming invitation. Demo pages require submitting the login form, but accept any non-empty username and password. Set `VITE_DEMO_MODE=true` to explicitly enable demo mode or `VITE_DEMO_MODE=false` to disable it; when unset, `VITE_DATA_MODE` continues to determine the data mode. Actions persist in the browser under `squadyatra.workspace.v1`; clearing that key resets the demo. The sidebar's **Demo view** selector switches consumer, agency, and admin previews. It is not a real authorization mechanism and is absent in live mode. Demo category attestation is not identity or age verification. Sample discoverable squads are illustrative, not evidence of an eligible match. No real payment is taken.
 
 Use `frontend/.env.example` as the configuration reference. Set these values in a local untracked environment file or Vercel environment settings:
 
 ```dotenv
 VITE_DATA_MODE=live
+VITE_DEMO_MODE=false
 VITE_API_GATEWAY_URL=https://your-gateway.example
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=your-public-publishable-key

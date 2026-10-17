@@ -138,7 +138,7 @@ export function AppLayout() {
               {identity?.name.slice(0, 1).toUpperCase() ?? 'A'}
             </span>
             <span>
-              <strong>{identity?.name ?? 'Guest'} Sharma</strong>
+              <strong>{identity?.name ?? 'Guest'} </strong>
               <small>{config.demo ? 'Demo traveler' : 'Your account'}</small>
             </span>
             <ChevronDown size={16} />

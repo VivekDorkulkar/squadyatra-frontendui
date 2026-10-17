@@ -11,14 +11,13 @@ interface Identity {
 interface AuthState {
   identity: Identity | null
   loading: boolean
+  signInDemo: (name: string) => void
   setDemoRole: (role: Role) => void
   signOut: () => Promise<void>
 }
 const AuthContext = createContext<AuthState | null>(null)
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [identity, setIdentity] = useState<Identity | null>(
-    config.demo ? { name: 'Aarav', role: 'consumer' } : null,
-  )
+  const [identity, setIdentity] = useState<Identity | null>(null)
   const [loading, setLoading] = useState(!config.demo)
   useEffect(() => {
     if (config.demo || !supabase) {
@@ -33,7 +32,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIdentity(
         session
           ? {
-              name: session.user.email?.split('@')[0] ?? 'Traveler',
+              name: String(
+                session.user.user_metadata.full_name ?? session.user.email?.split('@')[0] ?? 'Traveler',
+              ),
               role,
               agencyId: session.user.app_metadata.agency_id,
             }
@@ -48,6 +49,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         identity,
         loading,
+        signInDemo: (name) => {
+          if (config.demo) setIdentity({ name: name.trim() || 'Demo traveler', role: 'consumer' })
+        },
         setDemoRole: (role) => {
           if (config.demo)
             setIdentity({
@@ -57,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             })
         },
         signOut: async () => {
-          await supabase?.auth.signOut()
+          if (!config.demo) await supabase?.auth.signOut()
           setIdentity(null)
         },
       }}
