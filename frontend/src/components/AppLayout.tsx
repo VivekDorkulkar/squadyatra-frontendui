@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import {
   ArrowUpRight,
   Bell,
@@ -13,25 +13,21 @@ import {
   Mountain,
   Plane,
   Plus,
-  Settings2,
   ShieldCheck,
   UsersRound,
   X,
 } from 'lucide-react'
 import { useAuth } from '../features/auth/AuthProvider'
 import { useWorkspace } from '../features/workspace/WorkspaceProvider'
-import { config } from '../lib/config'
-import type { Role } from '../domain/models'
 import { Modal } from './ui'
 import { CreateSquadModal } from '../features/squads/SquadsPage'
 
 export function AppLayout() {
-  const { identity, setDemoRole } = useAuth()
+  const { identity } = useAuth()
   const { data } = useWorkspace()
   const [mobile, setMobile] = useState(false)
   const [modal, setModal] = useState<'help' | 'create' | null>(null)
   const location = useLocation()
-  const navigate = useNavigate()
   const invitations = data.invitations.filter((item) => item.status === 'pending').length
   const nav = [
     { to: '/', label: 'Explore trips', icon: Compass },
@@ -114,32 +110,13 @@ export function AppLayout() {
             Help & support
             <ArrowUpRight size={15} />
           </button>
-          {config.demo && (
-            <label className="demo-role">
-              <Settings2 size={15} />
-              <span>Demo view</span>
-              <select
-                aria-label="Demo role"
-                value={identity?.role ?? 'consumer'}
-                onChange={(event) => {
-                  const role = event.target.value as Role
-                  setDemoRole(role)
-                  navigate(role === 'consumer' ? '/' : `/${role}`)
-                }}
-              >
-                <option value="consumer">Traveler</option>
-                <option value="agency">Agency</option>
-                <option value="admin">Admin</option>
-              </select>
-            </label>
-          )}
           <Link to="/profile" className="profile-card">
             <span className="profile-avatar">
               {identity?.name.slice(0, 1).toUpperCase() ?? 'A'}
             </span>
             <span>
               <strong>{identity?.name ?? 'Guest'} </strong>
-              <small>{config.demo ? 'Demo traveler' : 'Your account'}</small>
+              <small>Your account</small>
             </span>
             <ChevronDown size={16} />
           </Link>

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, LogOut, Mail, Mountain, ShieldCheck } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAuth } from './AuthProvider'
+import { api } from '../../lib/api'
 import { isSupabaseRecoveryCallback, supabase } from '../../lib/supabase'
 import { config } from '../../lib/config'
 
@@ -10,16 +11,14 @@ function AuthPage({ signup = false }: { signup?: boolean }) {
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [pending, setPending] = useState(false)
-  const { signInDemo } = useAuth()
+  const { signIn, identity, loading: authLoading } = useAuth()
   const navigate = useNavigate()
+  useEffect(() => {
+    if (!signup && !authLoading && identity) navigate('/', { replace: true })
+  }, [signup, authLoading, identity, navigate])
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const form = new FormData(event.currentTarget)
-    if (config.demo) {
-      signInDemo(String(form.get(signup ? 'name' : 'email')))
-      navigate('/', { replace: true })
-      return
-    }
     if (!supabase) {
       setError(
         'Supabase is not configured. Add the public Supabase URL and publishable key to your environment.',
@@ -32,32 +31,27 @@ function AuthPage({ signup = false }: { signup?: boolean }) {
     try {
       const email = String(form.get('email'))
       const password = String(form.get('password'))
-      const result = signup
-        ? await supabase.auth.signUp({
-            email,
-            password,
-            options: { data: { full_name: String(form.get('name')) } },
-          })
-        : await supabase.auth.signInWithPassword({ email, password })
-      if (result.error) throw result.error
       if (signup) {
-        const user = result.data.user
-        if (!user?.id) {
-          throw new Error('Supabase did not confirm account creation. Please try again.')
-        }
-        if (user.identities?.length === 0) {
-          setNotice('Supabase did not confirm a new account. Check your email or try signing in.')
-          return
-        }
-        if (!result.data.session) {
-          setNotice('Your account was created in Supabase. Check your email for a confirmation link.')
-          return
-        }
+        const result = await api<{ message: string }>('/api/users', {
+          method: 'POST',
+          authenticated: false,
+          body: JSON.stringify({
+            fullName: String(form.get('name')),
+            email,
+            phoneNumber: String(form.get('phoneNumber')),
+            password,
+          }),
+        })
+        setNotice(result.message)
+        return
       }
+      await signIn(email, password)
       navigate('/', { replace: true })
     } catch (failure) {
       setError(
-        failure instanceof Error
+        failure instanceof Error && !signup && failure.message === 'Invalid email or password'
+          ? "Email or password not recognized. Please register if you don't have an account, or check your details."
+          : failure instanceof Error
           ? failure.message
           : `Could not ${signup ? 'create your account' : 'sign in'}. Please try again.`,
       )
@@ -66,22 +60,20 @@ function AuthPage({ signup = false }: { signup?: boolean }) {
     }
   }
   async function continueWithGoogle() {
-    if (config.demo || !supabase) {
-      setError(
-        config.demo
-          ? 'Google sign-in is available when demo mode is disabled and Supabase is configured.'
-          : 'Supabase is not configured. Add the public Supabase URL and publishable key to your environment.',
-      )
+    if (!supabase) {
+      setError('Supabase is not configured. Add the public Supabase URL and publishable key to your environment.')
       return
     }
     setPending(true)
     setError('')
     try {
-      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+      const { data, error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: window.location.origin },
+        options: { redirectTo: window.location.origin, skipBrowserRedirect: true },
       })
       if (oauthError) throw oauthError
+      if (!data.url) throw new Error('Could not start Google sign-in.')
+      window.location.assign(`${config.gatewayUrl}/api/users/oauth?url=${encodeURIComponent(data.url)}`)
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'Google sign-in failed. Please try again.')
       setPending(false)
@@ -97,13 +89,11 @@ function AuthPage({ signup = false }: { signup?: boolean }) {
         <p className="eyebrow">YOUR NEXT CHAPTER STARTS HERE</p>
         <h1>{signup ? 'Find your people out there.' : 'Welcome back, wanderer.'}</h1>
         <p className="muted">
-          {config.demo
-            ? 'Demo mode is on. Enter any username and password to continue.'
-            : signup
-              ? 'Create an account and start planning your next journey.'
-              : 'A good trip. A great squad. A little closer.'}
+          {signup
+            ? 'Create an account and start planning your next journey.'
+            : 'A good trip. A great squad. A little closer.'}
         </p>
-        {!config.demo && (
+        {supabase && (
           <>
             <button className="button outline auth-google" type="button" disabled={pending} onClick={continueWithGoogle}>
               <Mail size={17} />
@@ -118,15 +108,22 @@ function AuthPage({ signup = false }: { signup?: boolean }) {
             <input name="name" type="text" autoComplete="name" required placeholder="Your name" />
           </label>
         )}
+        {signup && (
+          <label>
+            Phone number
+            <input
+              name="phoneNumber"
+              type="tel"
+              autoComplete="tel"
+              pattern="\+[1-9][0-9]{6,14}"
+              required
+              placeholder="+919876543210"
+            />
+          </label>
+        )}
         <label>
-          {config.demo ? 'Username' : 'Email address'}
-          <input
-            name="email"
-            type={config.demo ? 'text' : 'email'}
-            autoComplete={config.demo ? 'username' : 'email'}
-            required
-            placeholder={config.demo ? 'Choose a username' : 'you@example.com'}
-          />
+          Email address
+          <input name="email" type="email" autoComplete="email" required placeholder="you@example.com" />
         </label>
         <label>
           Password
@@ -134,11 +131,12 @@ function AuthPage({ signup = false }: { signup?: boolean }) {
             name="password"
             type="password"
             autoComplete={signup ? 'new-password' : 'current-password'}
-            minLength={config.demo ? undefined : 6}
+            minLength={signup ? 12 : undefined}
+            maxLength={128}
             required
           />
         </label>
-        {!signup && !config.demo && (
+        {!signup && (
           <Link className="auth-forgot" to="/forgot-password">
             Forgot password?
           </Link>
@@ -178,8 +176,8 @@ export function ForgotPasswordPage() {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (config.demo || !supabase) {
-      setError('Password recovery requires demo mode to be disabled and Supabase to be configured.')
+    if (!supabase) {
+      setError('Password recovery requires Supabase to be configured.')
       return
     }
     setPending(true)
@@ -187,11 +185,11 @@ export function ForgotPasswordPage() {
     setNotice('')
     try {
       const form = new FormData(event.currentTarget)
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(
-        String(form.get('email')),
-        { redirectTo: `${window.location.origin}/reset-password` },
-      )
-      if (resetError) throw resetError
+      await api('/api/users/password-reset', {
+        method: 'POST',
+        authenticated: false,
+        body: JSON.stringify({ email: String(form.get('email')) }),
+      })
       setNotice('If an account exists for that email, password reset instructions have been sent.')
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'Could not request a password reset.')
@@ -235,8 +233,8 @@ export function ResetPasswordPage() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    if (config.demo || !supabase) {
-      setError('Password recovery requires demo mode to be disabled and Supabase to be configured.')
+    if (!supabase) {
+      setError('Password recovery requires Supabase to be configured.')
       setChecking(false)
       return
     }
@@ -289,9 +287,10 @@ export function ResetPasswordPage() {
     setPending(true)
     setError('')
     try {
-      const { data, error: updateError } = await supabase.auth.updateUser({ password })
-      if (updateError) throw updateError
-      if (!data.user?.id) throw new Error('Supabase did not confirm the password update.')
+      await api('/api/users/password-reset', {
+        method: 'PUT',
+        body: JSON.stringify({ password }),
+      })
       navigate('/', { replace: true })
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'Could not update your password.')
@@ -315,11 +314,11 @@ export function ResetPasswordPage() {
           <>
             <label>
               New password
-              <input name="password" type="password" autoComplete="new-password" minLength={6} required />
+              <input name="password" type="password" autoComplete="new-password" minLength={12} maxLength={128} required />
             </label>
             <label>
               Confirm new password
-              <input name="confirmPassword" type="password" autoComplete="new-password" minLength={6} required />
+              <input name="confirmPassword" type="password" autoComplete="new-password" minLength={12} maxLength={128} required />
             </label>
             <button className="button primary" disabled={pending}>
               {pending ? 'Updating password...' : 'Update password'}
